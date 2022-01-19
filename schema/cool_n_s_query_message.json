@@ -5,10 +5,10 @@
     {
       "type": "object",
       "required": [
-        "resolve"
+        "resolve_name"
       ],
       "properties": {
-        "resolve": {
+        "resolve_name": {
           "type": "object",
           "required": [
             "name",
@@ -16,6 +16,30 @@
           ],
           "properties": {
             "name": {
+              "type": "string"
+            },
+            "tld": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "resolve_lineage"
+      ],
+      "properties": {
+        "resolve_lineage": {
+          "type": "object",
+          "required": [
+            "lineage",
+            "tld"
+          ],
+          "properties": {
+            "lineage": {
               "type": "string"
             },
             "tld": {

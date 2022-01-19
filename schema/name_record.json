@@ -3,20 +3,23 @@
   "title": "NameRecord",
   "type": "object",
   "required": [
-    "owner",
-    "value"
+    "owner"
   ],
   "properties": {
+    "lineage": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "owner": {
       "$ref": "#/definitions/Addr"
     },
     "value": {
-      "type": "array",
-      "items": {
-        "type": "integer",
-        "format": "uint8",
-        "minimum": 0.0
-      }
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "definitions": {
