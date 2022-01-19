@@ -24,6 +24,7 @@ cosmwasm-storage = "1.0.0-beta"
 serde = { version = "1.0.133", default-features = false, features = ["derive"] }
 anyhow = "1.0.52"
 schemars = "0.8.8"
+multihash = "0.15.0"
 
 [dev-dependencies]
 cosmwasm-vm = "1.0.0-beta"

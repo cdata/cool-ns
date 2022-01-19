@@ -5,9 +5,9 @@ use cosmwasm_std::{
 
 use crate::{
     config::{get_config_storage, Config},
-    execute::register_name,
+    execute::{try_register_name, try_set_owner, try_set_value},
     message::{CoolNSExecuteMessage, CoolNSInstantiateMessage, CoolNSQueryMessage},
-    registry::get_name_record,
+    registry::NameRegistry,
 };
 
 /// NOTE: Called once for the lifetime of the contract
@@ -37,15 +37,29 @@ pub fn execute(
     msg: CoolNSExecuteMessage,
 ) -> Result<Response> {
     match msg {
-        CoolNSExecuteMessage::Register { name, tld } => register_name(deps, info, name, tld),
+        CoolNSExecuteMessage::Register { name, tld } => try_register_name(deps, info, name, tld),
+        CoolNSExecuteMessage::SetValue { name, tld, value } => {
+            try_set_value(deps, info, name, tld, value)
+        }
+        CoolNSExecuteMessage::SetOwner { name, tld, owner } => {
+            try_set_owner(deps, info, name, tld, owner)
+        }
     }
 }
 
 #[entry_point]
 pub fn query(deps: Deps, _env: Env, msg: CoolNSQueryMessage) -> Result<QueryResponse> {
     match msg {
-        CoolNSQueryMessage::Resolve { name, tld } => {
-            let record = get_name_record(deps.storage, &name, &tld)?;
+        CoolNSQueryMessage::ResolveName { name, tld } => {
+            let name_registry = NameRegistry::new(&tld);
+            let record = name_registry.try_resolve_name(deps.storage, &name)?;
+            let response_bytes = to_binary(&record)?;
+
+            Ok(response_bytes)
+        }
+        CoolNSQueryMessage::ResolveLineage { lineage, tld } => {
+            let name_registry = NameRegistry::new(&tld);
+            let record = name_registry.try_resolve_lineage(deps.storage, &lineage)?;
             let response_bytes = to_binary(&record)?;
 
             Ok(response_bytes)
