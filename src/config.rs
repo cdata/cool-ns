@@ -1,3 +1,4 @@
+use anyhow::Result;
 use cosmwasm_std::{Coin, StdResult, Storage};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use schemars::JsonSchema;
@@ -19,4 +20,9 @@ pub fn get_config_storage_read(storage: &dyn Storage) -> ReadonlySingleton<Confi
 
 pub fn get_config(storage: &dyn Storage) -> StdResult<Config> {
     get_config_storage_read(storage).load()
+}
+
+pub fn set_config<'a>(storage: &'a mut dyn Storage, config: Config) -> Result<()> {
+    get_config_storage(storage).save(&config)?;
+    Ok(())
 }

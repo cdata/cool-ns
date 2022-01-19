@@ -4,7 +4,7 @@ use cosmwasm_std::{
 };
 
 use crate::{
-    config::{get_config_storage, Config},
+    config::{set_config, Config},
     execute::{try_register_name, try_set_owner, try_set_value},
     message::{CoolNSExecuteMessage, CoolNSInstantiateMessage, CoolNSQueryMessage},
     registry::NameRegistry,
@@ -18,31 +18,33 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: CoolNSInstantiateMessage,
 ) -> Result<Response> {
-    let config = Config {
-        registration_fee: msg.registration_fee,
-        allowed_tlds: msg.allowed_tlds.clone(),
-    };
-
-    let mut config_storage = get_config_storage(deps.storage);
-    config_storage.save(&config)?;
+    set_config(
+        deps.storage,
+        Config {
+            registration_fee: msg.registration_fee,
+            allowed_tlds: msg.allowed_tlds.clone(),
+        },
+    )?;
 
     Ok(Response::default())
 }
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut,
+    mut deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: CoolNSExecuteMessage,
 ) -> Result<Response> {
     match msg {
-        CoolNSExecuteMessage::Register { name, tld } => try_register_name(deps, info, name, tld),
+        CoolNSExecuteMessage::Register { name, tld } => {
+            try_register_name(&mut deps, &info, &name, &tld)
+        }
         CoolNSExecuteMessage::SetValue { name, tld, value } => {
-            try_set_value(deps, info, name, tld, value)
+            try_set_value(&mut deps, &info, &name, &tld, value)
         }
         CoolNSExecuteMessage::SetOwner { name, tld, owner } => {
-            try_set_owner(deps, info, name, tld, owner)
+            try_set_owner(&mut deps, &info, &name, &tld, owner)
         }
     }
 }

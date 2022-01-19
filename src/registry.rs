@@ -5,7 +5,7 @@ use multihash::MultihashDigest;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct NameRecord {
     pub owner: Addr,
     pub value: Option<String>,
@@ -65,12 +65,19 @@ impl<'a> NameRegistry<'a> {
         storage: &'b dyn Storage,
         lineage: &String,
     ) -> Result<NameRecord> {
-        self.get_lineage(storage)
-            .load(lineage.as_bytes())
-            .context(format!(
-                "Could not find lineage {} in .{}",
-                lineage, self.tld
-            ))
+        match base32::decode(
+            base32::Alphabet::RFC4648 { padding: false },
+            lineage.as_str(),
+        ) {
+            Some(lineage_bytes) => self
+                .get_lineage(storage)
+                .load(lineage_bytes.as_slice())
+                .context(format!(
+                    "Could not find lineage {} in .{}",
+                    lineage, self.tld
+                )),
+            None => Err(anyhow!("Unable to decode specified lineage as base32")),
+        }
     }
 
     /// Attempt to set the owner of a given name
@@ -84,7 +91,10 @@ impl<'a> NameRegistry<'a> {
     ) -> Result<NameRecord> {
         let mut name_record = self.try_resolve_name(storage, name)?;
         let old_hash = name_record.hash();
-        let old_hash = String::from(std::str::from_utf8(old_hash.as_slice())?);
+        let old_hash = base32::encode(
+            base32::Alphabet::RFC4648 { padding: false },
+            old_hash.as_slice(),
+        );
 
         name_record.owner = owner;
         name_record.lineage = Some(old_hash);
@@ -113,7 +123,10 @@ impl<'a> NameRegistry<'a> {
 
         let mut name_record = self.try_resolve_name(storage, name)?;
         let old_hash = name_record.hash();
-        let old_hash = String::from(std::str::from_utf8(old_hash.as_slice())?);
+        let old_hash = base32::encode(
+            base32::Alphabet::RFC4648 { padding: false },
+            old_hash.as_slice(),
+        );
 
         name_record.value = value;
         name_record.lineage = Some(old_hash);
@@ -129,7 +142,7 @@ impl<'a> NameRegistry<'a> {
         &mut self,
         storage: &'b mut dyn Storage,
         name: &String,
-        owner: Addr,
+        owner: &Addr,
     ) -> Result<()> {
         match self.name_is_registered(storage, &name) {
             true => Err(anyhow!("Name already registered: {}.{}", name, self.tld)),
@@ -140,7 +153,7 @@ impl<'a> NameRegistry<'a> {
             storage,
             name,
             &NameRecord {
-                owner,
+                owner: owner.clone(),
                 value: None,
                 lineage: None,
             },
@@ -184,5 +197,57 @@ impl<'a> NameRegistry<'a> {
             .save(name_record.hash().as_slice(), &name_record)?;
 
         Ok(())
+    }
+}
+
+mod tests {
+    use super::NameRegistry;
+    use cosmwasm_std::{
+        testing::{mock_info, MockStorage},
+        Addr,
+    };
+
+    #[test]
+    fn it_can_register_a_name() {
+        let mut storage = MockStorage::default();
+        let info = mock_info("foo", &[]);
+        let sender = info.sender;
+
+        let name = String::from("cdata");
+        let tld = String::from("rad");
+        let mut name_registry = NameRegistry::new(&tld);
+
+        name_registry
+            .try_register(&mut storage, &name, &sender)
+            .unwrap();
+
+        let name_record = name_registry.try_resolve_name(&storage, &name).unwrap();
+
+        assert_eq!(name_record.owner, sender);
+    }
+
+    #[test]
+    fn it_can_set_a_value_for_a_name() {
+        let mut storage = MockStorage::default();
+        let info = mock_info("foo", &[]);
+        let sender = info.sender;
+
+        let name = String::from("cdata");
+        let tld = String::from("rad");
+        let value = String::from("bar");
+
+        let mut name_registry = NameRegistry::new(&tld);
+
+        name_registry
+            .try_register(&mut storage, &name, &sender)
+            .unwrap();
+
+        let name_record = name_registry
+            .try_set_value(&mut storage, &name, Some(value.clone()))
+            .unwrap();
+
+        println!("Name record: {:#?}", name_record);
+
+        assert_eq!(name_record.value, Some(value));
     }
 }
