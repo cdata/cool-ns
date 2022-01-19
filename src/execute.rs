@@ -26,9 +26,11 @@ pub fn try_set_owner(
         return Err(anyhow!("Only the name owner can change its owner"));
     }
 
-    let name_record = name_registry.try_set_owner(deps.storage, name, new_owner)?;
+    let _name_record = name_registry.try_set_owner(deps.storage, name, new_owner)?;
 
-    Ok(Response::default().set_data(to_binary(&name_record)?))
+    // See comment in try_set_value:
+    // Ok(Response::default().set_data(to_binary(&name_record)?))
+    Ok(Response::default())
 }
 
 /// Attempt to set the value for a name record
@@ -43,7 +45,7 @@ pub fn try_set_value(
 ) -> Result<Response> {
     let config = get_config(deps.storage)?;
 
-    if !config.allowed_tlds.contains(&tld) {
+    if !config.allowed_tlds.contains(tld) {
         return Err(anyhow!("Unknown TLD: {}", tld));
     }
 
@@ -54,9 +56,11 @@ pub fn try_set_value(
         return Err(anyhow!("Only the name owner can change its value"));
     }
 
-    let name_record = name_registry.try_set_value(deps.storage, name, value)?;
+    let _name_record = name_registry.try_set_value(deps.storage, name, value)?;
 
+    // Causes a UTF-8 parse error (not in tests though):
     // Ok(Response::default().set_data(to_binary(&name_record)?))
+    // Works fine:
     Ok(Response::default())
 }
 
