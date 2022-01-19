@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use cosmwasm_std::{DepsMut, MessageInfo, Response};
 
 use crate::{
@@ -41,9 +41,12 @@ pub fn register_name(
     let mut name_registry = get_name_registry_storage(deps.storage, &tld);
     let name_bytes = name.as_bytes();
 
-    if name_registry.may_load(name_bytes).is_ok() {
-        return Err(anyhow!("Name already registered: {}.{}", name, tld));
-    }
+    // NOTE: `may_load(...)` is Ok(None) if there is no data
+    match name_registry.may_load(name_bytes) {
+        Ok(Some(_)) => Err(anyhow!("Name already registered: {}.{}", name, tld)),
+        Err(error) => Err(anyhow!(error)),
+        _ => Ok(()),
+    }?;
 
     name_registry.save(
         name_bytes,
