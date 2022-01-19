@@ -200,6 +200,7 @@ impl<'a> NameRegistry<'a> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::NameRegistry;
     use cosmwasm_std::{

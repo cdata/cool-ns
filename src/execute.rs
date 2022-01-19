@@ -56,7 +56,8 @@ pub fn try_set_value(
 
     let name_record = name_registry.try_set_value(deps.storage, name, value)?;
 
-    Ok(Response::default().set_data(to_binary(&name_record)?))
+    // Ok(Response::default().set_data(to_binary(&name_record)?))
+    Ok(Response::default())
 }
 
 /// Attempt to register a name
@@ -101,6 +102,7 @@ pub fn try_register_name(
     Ok(Response::default())
 }
 
+#[cfg(test)]
 mod tests {
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_info, MockStorage},
