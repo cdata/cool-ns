@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use cosmwasm_std::{to_binary, Addr, DepsMut, MessageInfo, Response};
+use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response};
 
 use crate::{config::get_config, registry::NameRegistry};
 
@@ -26,11 +26,12 @@ pub fn try_set_owner(
         return Err(anyhow!("Only the name owner can change its owner"));
     }
 
-    let _name_record = name_registry.try_set_owner(deps.storage, name, new_owner)?;
+    let name_record = name_registry.try_set_owner(deps.storage, name, new_owner)?;
 
-    // See comment in try_set_value:
-    // Ok(Response::default().set_data(to_binary(&name_record)?))
-    Ok(Response::default())
+    Ok(Response::new()
+        .add_attribute("name", name)
+        .add_attribute("tld", tld)
+        .add_attribute("owner", name_record.owner))
 }
 
 /// Attempt to set the value for a name record
@@ -56,12 +57,17 @@ pub fn try_set_value(
         return Err(anyhow!("Only the name owner can change its value"));
     }
 
-    let _name_record = name_registry.try_set_value(deps.storage, name, value)?;
+    let name_record = name_registry.try_set_value(deps.storage, name, value)?;
 
-    // Causes a UTF-8 parse error (not in tests though):
-    // Ok(Response::default().set_data(to_binary(&name_record)?))
-    // Works fine:
-    Ok(Response::default())
+    let response = Response::new()
+        .add_attribute("name", name)
+        .add_attribute("tld", tld)
+        .add_attribute("owner", name_record.owner);
+
+    Ok(match name_record.value {
+        Some(value) => response.add_attribute("value", value),
+        None => response,
+    })
 }
 
 /// Attempt to register a name
@@ -103,7 +109,10 @@ pub fn try_register_name(
 
     name_registry.try_register(deps.storage, name, &info.sender)?;
 
-    Ok(Response::default())
+    Ok(Response::new()
+        .add_attribute("name", name)
+        .add_attribute("tld", tld)
+        .add_attribute("owner", &info.sender))
 }
 
 #[cfg(test)]
